@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>找不到頁面｜我的學習中心</title>
+<style>
+:root{--bg:#f6f5f2;--text:#1d1d1f;--muted:#6b6b70;--accent:#b8862f}
+@media (prefers-color-scheme: dark){:root{--bg:#0f0f12;--text:#ececef;--muted:#9a9aa3;--accent:#d4a24c}}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+main{max-width:560px;margin:15vh auto 0;padding:0 16px;text-align:center}
+h1{font-size:22px;margin:0 0 8px}p{color:var(--muted);margin:6px 0}a{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <h1>找不到這個頁面</h1>
+  <p id="msg">網址可能多了奇怪的字，正在帶你回正確的頁面…</p>
+  <p><a id="go" href="/learning-hub/">回首頁</a></p>
+</main>
+<script>
+(function(){
+  var KNOWN = ["a101-workplace","big-things-pm","communication-mindset","pep-effectiveness","smalltalk","stakeholder-politics","super-numeracy","trm","wealth-life"];
+  var re = new RegExp("_*about(?:[_~:]|%3a|%7e|%5f)+blank_*", 'gi');
+  var path = location.pathname;
+  try { path = decodeURIComponent(path); } catch (e) {}
+  path = path.replace(re, '');
+  // 網站根目錄：/learning-hub/（GitHub Pages 專案網址的第一層）
+  var m = path.match(/^\/[^\/]+\//), base = m ? m[0] : '/';
+  var rest = path.slice(base.length).replace(/\/{2,}/g, '/');
+  var target = base, slug = '';
+  var cm = rest.match(/^courses\/([^\/?#]+)/i);
+  if (cm) {
+    slug = cm[1].toLowerCase();
+    if (KNOWN.indexOf(slug) < 0) {
+      // 代號後面黏了別的字（例如 a101-workplaceXXX）：找最長的已知代號開頭
+      var best = '';
+      KNOWN.forEach(function(k){ if (slug.indexOf(k) === 0 && k.length > best.length) best = k; });
+      slug = best;
+    }
+    if (slug) target = base + 'courses/' + slug + '/';
+  }
+  var search = location.search.replace(re, ''), hash = location.hash.replace(re, '');
+  var full = target + (search === '?' ? '' : search) + (hash === '#' ? '' : hash);
+  var a = document.getElementById('go');
+  a.href = full;
+  if (slug) a.textContent = '前往這門課';
+  // 防止無限循環：目標就是現在這頁時不跳
+  if (target !== location.pathname) location.replace(full);
+  else document.getElementById('msg').textContent = '這個網址不存在。';
+})();
+</script>
+</body>
+</html>
