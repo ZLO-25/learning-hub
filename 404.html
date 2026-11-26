@@ -17,22 +17,37 @@ h1{font-size:22px;margin:0 0 8px}p{color:var(--muted);margin:6px 0}a{color:var(-
 <main>
   <h1>找不到這個頁面</h1>
   <p id="msg">網址可能多了奇怪的字，正在帶你回正確的頁面…</p>
-  <p><a id="go" href="/learning-hub/">回首頁</a></p>
+  <p><a id="go" href="./">回首頁</a></p>
 </main>
 <script>
 (function(){
   var KNOWN = ["a101-workplace","big-things-pm","communication-mindset","company-setup","pep-effectiveness","smalltalk","stakeholder-politics","super-numeracy","trm","wealth-freedom","wealth-life"];
-  var re = new RegExp("_*about(?:[_~:]|%3a|%7e|%5f)+blank_*", 'gi');
+  var re = new RegExp("(?:_%5f|%5f|_)*about(?:[_~:-]|%[0-9a-f]{2})+blank(?:_%5f|%5f|_)*", 'gi');
   var path = location.pathname;
   try { path = decodeURIComponent(path); } catch (e) {}
-  path = path.replace(re, '');
-  // 網站根目錄：/learning-hub/（GitHub Pages 專案網址的第一層）
-  var m = path.match(/^\/[^\/]+\//), base = m ? m[0] : '/';
-  var rest = path.slice(base.length).replace(/\/{2,}/g, '/');
-  var target = base, slug = '';
-  var cm = rest.match(/^courses\/([^\/?#]+)/i);
+  path = path.replace(re, '').replace(/\/{2,}/g, '/');
+
+  var base = '/', slug = '';
+  // 1. 優先偵測 /.../courses/<slug> 或 /courses/<slug>（同時相容 /learning-hub/courses/... 與根目錄 /courses/...）
+  var cm = path.match(/^(.*?\/)courses\/([^\/?#]+)/i);
   if (cm) {
-    slug = cm[1].toLowerCase();
+    base = cm[1] || '/';
+    slug = cm[2].toLowerCase();
+  } else {
+    // 2. 非課程子路徑（含 /learning-hub__about_~_blank__ 無結尾斜線、或 GitHub Pages 首層子路徑）
+    var lm = path.match(/^\/(learning-hub)(?:\/|$)/i);
+    if (lm) {
+      base = '/' + lm[1] + '/';
+    } else if (/\.github\.io$/i.test(location.hostname)) {
+      var gm = path.match(/^\/([^\/]+)(?:\/|$)/);
+      base = gm ? '/' + gm[1] + '/' : '/';
+    } else {
+      base = '/';
+    }
+  }
+
+  var target = base;
+  if (slug) {
     if (KNOWN.indexOf(slug) < 0) {
       // 代號後面黏了別的字（例如 a101-workplaceXXX）：找最長的已知代號開頭
       var best = '';
@@ -41,14 +56,19 @@ h1{font-size:22px;margin:0 0 8px}p{color:var(--muted);margin:6px 0}a{color:var(-
     }
     if (slug) target = base + 'courses/' + slug + '/';
   }
-  var search = location.search.replace(re, ''), hash = location.hash.replace(re, '');
+
+  var search = location.search.replace(re, '').replace(/^\?&+/, '?').replace(/&{2,}/g, '&').replace(/&$/, '');
+  var hash = location.hash.replace(re, '');
   var full = target + (search === '?' ? '' : search) + (hash === '#' ? '' : hash);
   var a = document.getElementById('go');
   a.href = full;
   if (slug) a.textContent = '前往這門課';
-  // 防止無限循環：目標就是現在這頁時不跳
-  if (target !== location.pathname) location.replace(full);
-  else document.getElementById('msg').textContent = '這個網址不存在。';
+  // 防止無限循環：目標與查詢、錨點皆未改變時不跳轉
+  if (target !== location.pathname || search !== location.search || hash !== location.hash) {
+    location.replace(full);
+  } else {
+    document.getElementById('msg').textContent = '這個網址不存在。';
+  }
 })();
 </script>
 </body>
